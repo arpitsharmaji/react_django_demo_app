@@ -1,0 +1,25 @@
+pipeline {
+    agent { label 'dev-agent' }
+    stages {
+        stage('code') {
+            steps {
+                git url: 'https://github.com/arpitsharmaji/react_django_demo_app', branch: 'main'
+            }
+        }
+        stage('docker push image and login') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'DockerHub', usernameVariable: 'dockerHubUser', passwordVariable: 'dockerHubPassword')]) {
+                    sh '''docker login -u ${dockerHubUser} -p ${dockerHubPassword}
+                    docker build . -t ${dockerHubUser}/react_django_app:latest
+                    docker push ${dockerHubUser}/react_django_app:latest
+                    '''
+                }
+            }   
+        }
+        stage('deploying') {
+            steps {
+                sh '''docker-compose down && docker-compose up -d --no-deps --build web'''
+            }
+        }
+    }
+}
